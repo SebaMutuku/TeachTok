@@ -3,34 +3,21 @@ import React from "react";
 import {AntDesign, FontAwesome, Fontisto, MaterialCommunityIcons, MaterialIcons} from "@expo/vector-icons";
 
 
-interface ImageFlatListProps {
-    data: MQCdata[];
-}
-
-interface AnswerData {
-    id: number,
-    correct_options: [
-        {
-            id: string,
-            answer: string
-        }
-    ]
-}
-
 const dimensions = Dimensions.get("screen")
 
-const TopSection = () => (
+const TopSection = ({seconds}: any) => (
     <View style={styles.top}>
         <View style={{
             justifyContent: "flex-start",
             marginHorizontal: 10,
             flexDirection: "row",
-            alignItems: "center",
+            alignItems: "center"
         }}>
-            <MaterialCommunityIcons name="clock-time-twelve-outline" size={24} color="white"/>
+            <AntDesign name="clockcircle" size={20} color="rgba(255, 255, 255, 0.60)"/>
             <Text style={{
-                color: "white"
-            }}>10m</Text>
+                color: "white",
+                marginHorizontal: 5
+            }}>{Math.floor(seconds / 60)}m</Text>
         </View>
 
         <View style={{
@@ -44,7 +31,7 @@ const TopSection = () => (
 
             <View style={{
                 borderBottomColor: 'white',
-                borderBottomWidth: 2,
+                borderBottomWidth: 3,
                 margin: 10,
                 width: 40
             }}/>
@@ -84,93 +71,83 @@ const PlayList = ({playList}: any) => (
             <MaterialIcons name="keyboard-arrow-right" size={24} color="white"/>
         </View>
     </View>);
-export default function ImageFlatList({data}: ImageFlatListProps) {
+export default function ImageFlatList({data, answers}: ImageFlatListProps) {
 
-    const [iconName, setIconName] = React.useState("")
-    const [iconColor, setIconColor] = React.useState("white")
     const [selectedId, setSelectedId] = React.useState<string>("");
+    const [seconds, setSeconds] = React.useState(0);
 
-    const validateAnswer = async ({id, choice}: any) => {
-        const questionAnswer = await fetch(`https://cross-platform.rp.devfactory.com/reveal?id=${id}`, {
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        }).then(resp => resp.json()).then((answer: AnswerData) => {
-            if (answer.correct_options[0].id === choice) {
-                setIconName("like")
-                setIconColor("green")
-            } else {
-                setIconName("dislike")
-                setIconColor("red")
-            }
+    const secondsRef = React.useRef(0);
 
-        })
-    }
+    React.useEffect(() => {
+        const intervalId = setInterval(async () => {
+            secondsRef.current += 1;
+            setSeconds(secondsRef.current);
+        }, 1000);
+        return () => clearInterval(intervalId);
+    }, []);
 
 
-    const QuestionAnswers = ({options, iconColor, iconName, choice, item}: any) => {
-        const backgroundColor = selectedId == choice ? "rgba(40, 177, 143, 0.00)" : "rgba(255, 255, 255, 0.50)"
+    const QuestionAnswers = ({options}: any) => {
+        const [buttonColor] = React.useState("rgba(255, 255, 255, 0.50)")
 
-        const icon = () => {
-            return (
-                <View>
-                    {iconName && selectedId == choice && <Fontisto name={iconName} size={24} color={iconColor}/>}
-                </View>);
-        }
+
         return (
             <View style={{
                 flexDirection: "column",
                 justifyContent: "space-between",
-                marginTop: 250,
+                marginTop: dimensions.height * .3,
                 padding: 20
             }}>
-                {options.map((answerOption: any) => (
-                    <TouchableOpacity key={answerOption.id} style={{
-                        backgroundColor,
-                        padding: 15,
-                        marginRight: 20,
-                        borderRadius: 8,
-                        margin: 5,
-                        justifyContent: 'space-between',
-                        flexDirection: "row"
-                    }} onPress={async () => {
-                        setSelectedId(answerOption.id)
-                        console.log(selectedId)
-                        await fetch(`https://cross-platform.rp.devfactory.com/reveal?id=${item.id}`, {
-                            headers: {
-                                'Content-Type': 'application/json',
-                            }
-                        }).then(resp => resp.json()).then((answer: AnswerData) => {
-                            if (selectedId === answerOption.id) {
-                                if (answer.correct_options[0].id === answerOption.id) {
-                                    setIconName("like")
-                                } else {
-                                    setIconName("dislike")
-                                }
-                            }
-                        })
-                    }}>
-                        <Text style={{
-                            color: "#FFF",
-                            shadowColor: "rgba(0, 0, 0, 0.45)",
-                            fontSize: 17,
-                            fontStyle: "normal",
-                            alignSelf: "flex-start",
-                            fontWeight: "500"
-                        }}>{answerOption.answer}</Text>
-                        {icon()}
-                    </TouchableOpacity>
-                ))}
+                {options.map((answerOption: any) => {
+                    const correctAnswer = answers[0].correct_options[0].id === answerOption.id;
+                    let correctAnsIcon: any = ""
+                    let backgroundColor = buttonColor;
+                    if (selectedId == answerOption.id) {
+                        if (correctAnswer) {
+                            backgroundColor = "rgba(40, 177, 143, 0.70)"
+                            correctAnsIcon = "like"
+                        } else {
+                            backgroundColor = "red"
+                            correctAnsIcon = "dislike"
+                        }
+                    }
+
+
+                    return (<TouchableOpacity key={answerOption.id} style={{
+                            backgroundColor,
+                            padding: 10,
+                            borderRadius: 10,
+                            marginVertical: 5,
+                            justifyContent: 'space-between',
+                            flexDirection: "row"
+                        }} onPress={() => {
+                            setSelectedId(answerOption.id)
+                        }}>
+                            <Text style={{
+                                color: "#FFF",
+                                shadowColor: "rgba(0, 0, 0, 0.45)",
+                                fontSize: 14,
+                                fontStyle: "normal",
+                                alignSelf: "flex-start",
+                                fontWeight: "500",
+                                textShadowColor: "black",
+                                borderColor: "black"
+                            }}>{answerOption.answer}</Text>
+                            {correctAnsIcon && <Fontisto name={correctAnsIcon} size={24} color="white"/>}
+                        </TouchableOpacity>
+                    )
+                })}
             </View>
         );
     }
     const renderItem = ({item}: { item: MQCdata }) => {
         return (
             <ImageBackground key={item.id} source={{uri: item.image}} style={styles.backgroundImage}>
-                <TopSection/>
+                <TopSection seconds={seconds}/>
                 <View style={{
                     marginHorizontal: 16,
-                    padding: 20
+                    width: "70%",
+                    backgroundColor: "black",
                 }}>
                     <Text style={styles.topText}>
                         {item.question}
@@ -182,7 +159,7 @@ export default function ImageFlatList({data}: ImageFlatListProps) {
                     <View style={{
                         flex: 2
                     }}>
-                        <QuestionAnswers options={item.options} item={item} iconName={iconName} iconColor={iconColor}/>
+                        <QuestionAnswers options={item.options} item={item}/>
                     </View>
                     <View style={{
                         margin: 5,
@@ -218,6 +195,7 @@ export default function ImageFlatList({data}: ImageFlatListProps) {
                         </View>
                     </View>
                 </View>
+
                 <AuthorInfo author={item.user?.name} desc={item.description}/>
                 <PlayList playList={item.playlist}/>
             </ImageBackground>
@@ -228,7 +206,9 @@ export default function ImageFlatList({data}: ImageFlatListProps) {
             data={data}
             renderItem={renderItem}
             keyExtractor={(item) => item.id.toString()}
-            horizontal
+            horizontal={false}
+            pagingEnabled={true}
+            showsVerticalScrollIndicator={false}
         />
     )
 
@@ -239,8 +219,7 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontStyle: "normal",
         fontWeight: "500",
-        color: "white",
-        backgroundColor: "black"
+        color: "white"
     },
     backgroundImage: {
         flex: 1,

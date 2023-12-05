@@ -14,3 +14,19 @@ interface MQCdata {
         avatar: string | undefined,
     } | undefined
 }
+
+
+interface AnswerData {
+    id: number,
+    correct_options: [
+        {
+            id: string,
+            answer: string
+        }
+    ]
+}
+
+interface ImageFlatListProps {
+    data: MQCdata[];
+    answers: AnswerData[]
+}
